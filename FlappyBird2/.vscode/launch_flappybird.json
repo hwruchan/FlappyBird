@@ -1,0 +1,13 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Train flappybird1",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "C:/Users/jeongchan/iCloudDrive/iCloud~md~obsidian/obsidian/SMU/2024-2/강화학습/project/FlappyBird/agent.py",
+            "console": "integratedTerminal",
+            "args": ["flappybird1", "--train"]
+        }
+    ]
+}
