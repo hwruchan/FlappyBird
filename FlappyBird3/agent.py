@@ -19,6 +19,9 @@ import itertools
 import flappy_bird_gymnasium
 import os
 
+from custom_flappy_env import CustomFlappyBirdEnv
+
+
 
 # For printing date and time
 DATE_FORMAT = "%m-%d %H:%M:%S"
@@ -82,8 +85,9 @@ class Agent():
             with open(self.LOG_FILE, 'w') as file:
                 file.write(log_message + '\n')
 
-        env = gym.make(self.env_id, render_mode="human" if render else None, use_lidar=False)
-        
+        #env = gym.make(self.env_id, render_mode="human" if render else None, use_lidar=False)
+        env = CustomFlappyBirdEnv(render_mode="human" if render else None)
+            
         num_states = env.observation_space.shape[0]
         num_actions = env.action_space.n
         
@@ -129,17 +133,17 @@ class Agent():
 
         for episode in itertools.count():
             # 학습 상태 출력
-            if is_training and episode % 1000 == 0:
+            if is_training and episode % 10000 == 0:
                 print(f"Episode {episode}")
                 print(f"Epsilon: {epsilon:.4f}")
                 if len(rewards_per_episode) > 0:
-                    print(f"Average Reward: {np.mean(rewards_per_episode[-1000:]):.2f}")
-                    print(f"Max Reward: {max(rewards_per_episode[-1000:]):.2f}")            
+                    print(f"Average Reward: {np.mean(rewards_per_episode[-10000:]):.2f}")
+                    print(f"Max Reward: {max(rewards_per_episode[-10000:]):.2f}")            
                 print("-" * 30)
 
             # 1000 에피소드마다 또는 마지막 에피소드에서 모델 저장
-            if is_training and episode > 0 and (episode % 10000 == 0 or (max_episodes and episode == max_episodes)):
-                model_number = (episode + 999) // 10000  # 마지막 에피소드를 위해 수정
+            if is_training and episode > 0 and (episode % 100000 == 0 or (max_episodes and episode == max_episodes)):
+                model_number = (episode + 99999) // 100000  # 마지막 에피소드를 위해 수정
                 base_name = self.hyperparameter_set.split('1')[0]
                 checkpoint_path = os.path.join(RUNS_DIR, f'{base_name}{model_number}.pt')
                 torch.save(policy_dqn.state_dict(), checkpoint_path)

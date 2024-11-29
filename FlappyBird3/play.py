@@ -5,6 +5,7 @@ import os
 import yaml
 from dqn import DQN
 import flappy_bird_gymnasium
+from custom_flappy_env import CustomFlappyBirdEnv
 
 # Directory for loading models
 RUNS_DIR = "runs"
@@ -15,10 +16,8 @@ def play(model_number):
     with open('play_config.yml', 'r', encoding='utf-8') as file:
         config = yaml.safe_load(file)
     
-    # Initialize environment with default params if env_make_params not specified
-    env_params = config.get('env_make_params', {'use_lidar': False})
-    env = gym.make("FlappyBird-v0", render_mode="human", **env_params)
-    
+    # Initialize environment
+    env = CustomFlappyBirdEnv(render_mode="human")    
     # Initialize DQN
     num_states = env.observation_space.shape[0]
     num_actions = env.action_space.n

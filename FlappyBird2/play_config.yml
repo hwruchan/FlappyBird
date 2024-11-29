@@ -1,4 +1,0 @@
-env_id: FlappyBird-v0
-fc1_nodes: 512
-env_make_params:
-  use_lidar: False
