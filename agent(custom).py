@@ -141,7 +141,7 @@ class Agent():
                 print("-" * 30)
 
             if is_training and episode > 0 and (episode % 100000 == 0 or (max_episodes and episode == max_episodes)):
-                model_number = (episode + 99999) // 100000  # 마지막 에피소드를 위해 수정
+                model_number = (episode + 99999) // 100000  
                 base_name = self.hyperparameter_set.split('1')[0]
                 checkpoint_path = os.path.join(RUNS_DIR, f'{base_name}{model_number}.pt')
                 torch.save(policy_dqn.state_dict(), checkpoint_path)
