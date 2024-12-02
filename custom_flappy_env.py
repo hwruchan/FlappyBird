@@ -8,9 +8,13 @@ class CustomFlappyBirdEnv(FlappyBirdEnv):
         self.SURVIVAL_REWARD = 0.1    # 생존 보상 (기본: 0.1)
         self.PIPE_REWARD = 1.0         # 파이프 통과 보상 (기본: 1.0)
         self.COLLISION_PENALTY = -1.0   # 충돌 패널티 (기본: -1.0)
-        self.JUMP_REWARD = 0.3         # 점프 보상 (새로 추가)
+        self.JUMP_REWARD = 0.00001        # 점프 보상 (새로 추가)
         self.prev_score = 0            # prev_score 초기화 추가
-
+        # 시야 방향과 테두리 비활성화
+        self.use_lidar = False
+        self.show_sensors = False
+        self.show_boundaries = False
+        
     def step(self, action):
         obs, reward, terminated, truncated, info = super().step(action)
         

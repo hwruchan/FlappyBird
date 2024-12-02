@@ -19,9 +19,6 @@ import itertools
 import flappy_bird_gymnasium
 import os
 
-from custom_flappy_env import CustomFlappyBirdEnv
-
-
 
 # For printing date and time
 DATE_FORMAT = "%m-%d %H:%M:%S"
@@ -38,13 +35,13 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class Agent():
 
     def __init__(self, hyperparameter_set):
-        with open('hyperparameters.yml', 'r') as file:
+        with open('C:/Users/jeongchan/iCloudDrive/iCloud~md~obsidian/obsidian/SMU/2024-2/강화학습/project/FlappyBird_NaiveDqn/hyperparameters.yml', 'r') as file:
             try:
                 all_hyperparameter_sets = yaml.safe_load(file)
                 hyperparameters = all_hyperparameter_sets[hyperparameter_set]
             except UnicodeDecodeError:
                 file.close()
-                file = open('hyperparameters.yml', 'r', encoding='utf-8')
+                file = open('C:/Users/jeongchan/iCloudDrive/iCloud~md~obsidian/obsidian/SMU/2024-2/강화학습/project/FlappyBird_NaiveDqn/hyperparameters.yml', 'r', encoding='utf-8')
                 all_hyperparameter_sets = yaml.safe_load(file)
                 hyperparameters = all_hyperparameter_sets[hyperparameter_set]
             #print(hyperparameters)
@@ -55,16 +52,16 @@ class Agent():
         self.env_id             = hyperparameters['env_id']
         self.learning_rate_a    = hyperparameters['learning_rate_a']        # learning rate (alpha)
         self.discount_factor_g  = hyperparameters['discount_factor_g']      # discount rate (gamma)
-        self.network_sync_rate  = hyperparameters['network_sync_rate']      # number of steps the agent takes before syncing the policy and target network
-        self.replay_memory_size = hyperparameters['replay_memory_size']     # size of replay memory
-        self.mini_batch_size    = hyperparameters['mini_batch_size']        # size of the training data set sampled from the replay memory
+        # self.network_sync_rate  = hyperparameters['network_sync_rate']    # 주석 처리
+        # self.replay_memory_size = hyperparameters['replay_memory_size']   # 주석 처리
+        # self.mini_batch_size    = hyperparameters['mini_batch_size']      # 주석 처리
         self.epsilon_init       = hyperparameters['epsilon_init']           # 1 = 100% random actions
         self.epsilon_decay      = hyperparameters['epsilon_decay']          # epsilon decay rate
         self.epsilon_min        = hyperparameters['epsilon_min']            # minimum epsilon value
-        self.stop_on_reward     = hyperparameters['stop_on_reward']         # stop training after reaching this number of rewards
+        self.stop_on_reward     = hyperparameters['stop_on_reward']        # stop training after reaching this number of rewards
         self.fc1_nodes          = hyperparameters['fc1_nodes']
-        self.env_make_params    = hyperparameters.get('env_make_params',{}) # Get optional environment-specific parameters, default to empty dict
-        self.enable_double_dqn  = hyperparameters['enable_double_dqn']      # double dqn on/off flag
+        self.env_make_params    = hyperparameters.get('env_make_params',{}) # Get optional environment-specific parameters
+        self.enable_double_dqn  = hyperparameters['enable_double_dqn']     # double dqn on/off flag
 
         # Neural Network
         self.loss_fn = nn.MSELoss()          # NN Loss function. MSE=Mean Squared Error can be swapped to something else.
@@ -85,9 +82,8 @@ class Agent():
             with open(self.LOG_FILE, 'w') as file:
                 file.write(log_message + '\n')
 
-        #env = gym.make(self.env_id, render_mode="human" if render else None, use_lidar=False)
-        env = CustomFlappyBirdEnv(render_mode="human" if render else None)
-            
+        env = gym.make(self.env_id, render_mode="human" if render else None, use_lidar=False)
+        
         num_states = env.observation_space.shape[0]
         num_actions = env.action_space.n
         
@@ -102,11 +98,11 @@ class Agent():
             epsilon = self.epsilon_init
 
             # Initialize replay memory
-            memory = ReplayMemory(self.replay_memory_size)
+            # memory = ReplayMemory(self.replay_memory_size)
 
             # Create the target network and make it identical to the policy network
-            target_dqn = DQN(num_states, num_actions, self.fc1_nodes).to(device)
-            target_dqn.load_state_dict(policy_dqn.state_dict())
+            # target_dqn = DQN(num_states, num_actions, self.fc1_nodes).to(device)
+            # target_dqn.load_state_dict(policy_dqn.state_dict())
 
             # Policy network optimizer. "Adam" optimizer can be swapped to something else.
             self.optimizer = torch.optim.Adam(policy_dqn.parameters(), lr=self.learning_rate_a)
@@ -115,7 +111,7 @@ class Agent():
             epsilon_history = []
 
             # Track number of steps taken. Used for syncing policy => target network.
-            step_count=0
+            # step_count=0
 
             # Track best reward
             best_reward = -9999999
@@ -182,15 +178,31 @@ class Agent():
                 # accumulate reward
                 episode_reward += reward
 
-                new_state = torch.tensor(new_state, dtype=torch.float, device=device)
-                reward = torch.tensor(reward, dtype=torch.float, device=device)
-
                 if is_training:
-                    # Save experience into memory
-                    memory.append((state, action, new_state, reward, terminated))
-
-                    # increment step count
-                    step_count += 1
+                    # Replay Memory 대신 즉시 학습
+                    new_state = torch.tensor(new_state, dtype=torch.float, device=device)
+                    reward = torch.tensor(reward, dtype=torch.float, device=device)
+                    
+                    # 현재 상태에서의 Q값 계산
+                    current_q = policy_dqn(state.unsqueeze(0)).squeeze(0)
+                    
+                    # 다음 상태에서의 최대 Q값 계산 (Target Network 없이)
+                    with torch.no_grad():
+                        next_q = policy_dqn(new_state.unsqueeze(0)).squeeze(0).max()
+                    
+                    # TD Target 계산
+                    target_q = current_q.clone()
+                    target_q[action] = reward + (1-terminated) * self.discount_factor_g * next_q
+                    
+                    # 손실 계산 및 업데이트
+                    loss = self.loss_fn(current_q.unsqueeze(0), target_q.unsqueeze(0))
+                    self.optimizer.zero_grad()
+                    loss.backward()
+                    self.optimizer.step()
+                    
+                    # Epsilon decay
+                    epsilon = max(epsilon * self.epsilon_decay, self.epsilon_min)
+                    epsilon_history.append(epsilon)
 
                 # Update state(move to next state)
                 state = new_state
@@ -214,20 +226,6 @@ class Agent():
                 if current_time - last_graph_update_time > timedelta(seconds=10):
                     self.save_graph(rewards_per_episode, epsilon_history)
                     last_graph_update_time = current_time
-
-                # If enough experience has been collected
-                if len(memory)>self.mini_batch_size:
-                    mini_batch = memory.sample(self.mini_batch_size)
-                    self.optimize(mini_batch, policy_dqn, target_dqn)
-
-                    # Decay epsilon
-                    epsilon = max(epsilon * self.epsilon_decay, self.epsilon_min)
-                    epsilon_history.append(epsilon)
-
-                    # Copy policy network to target network after a certain number of steps
-                    if step_count > self.network_sync_rate:
-                        target_dqn.load_state_dict(policy_dqn.state_dict())
-                        step_count=0
 
     def save_graph(self, rewards_per_episode, epsilon_history):
         # Save plots
@@ -253,53 +251,6 @@ class Agent():
         # Save plots
         fig.savefig(self.GRAPH_FILE)
         plt.close(fig)
-
-
-    def optimize(self, mini_batch, policy_dqn, target_dqn):
-        # Transpose the list of experiences and separate each element
-        states, actions, new_states, rewards, terminations = zip(*mini_batch)
-
-        # Stack tensors to create batch tensors
-        # tensor([[1,2,3]])
-        states = torch.stack(states)
-
-        actions = torch.stack(actions)
-
-        new_states = torch.stack(new_states)
-
-        rewards = torch.stack(rewards)
-        terminations = torch.tensor(terminations).float().to(device)
-
-
-        # Calculate target Q values (expected returns)
-        with torch.no_grad():
-            target_q = rewards + (1-terminations) * self.discount_factor_g * target_dqn(new_states).max(dim=1)[0]
-
-            '''
-                target_dqn(new_states)  ==> tensor([[1,2,3],[4,5,6]])
-                    .max(dim=1)         ==> torch.return_types.max(values=tensor([3,6]), indices=tensor([3, 0, 0, 1]))
-                        [0]             ==> tensor([3,6])
-            '''
-
-        # Calcuate Q values from current policy
-        current_q = policy_dqn(states).gather(dim=1, index=actions.unsqueeze(dim=1)).squeeze()
-        '''
-            policy_dqn(states)  ==> tensor([[1,2,3],[4,5,6]])
-                actions.unsqueeze(dim=1)
-                .gather(1, actions.unsqueeze(dim=1))  ==>
-                    .squeeze()                    ==>
-        '''
-
-        # Compute loss for the whole mini-batch
-        loss = self.loss_fn(current_q, target_q)
-        
-        # Optimize the model (backpropagation)
-        self.optimizer.zero_grad()  # Clear gradients
-        loss.backward()             # Compute gradients
-        self.optimizer.step()       # Update network parameters i.e. weights and biases
-        
-
-
 
 
 if __name__ == '__main__':
