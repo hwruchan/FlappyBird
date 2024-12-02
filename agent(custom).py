@@ -132,7 +132,6 @@ class Agent():
 
 
         for episode in itertools.count():
-            # 학습 상태 출력
             if is_training and episode % 10000 == 0:
                 print(f"Episode {episode}")
                 print(f"Epsilon: {epsilon:.4f}")
@@ -141,7 +140,6 @@ class Agent():
                     print(f"Max Reward: {max(rewards_per_episode[-10000:]):.2f}")            
                 print("-" * 30)
 
-            # 1000 에피소드마다 또는 마지막 에피소드에서 모델 저장
             if is_training and episode > 0 and (episode % 100000 == 0 or (max_episodes and episode == max_episodes)):
                 model_number = (episode + 99999) // 100000  # 마지막 에피소드를 위해 수정
                 base_name = self.hyperparameter_set.split('1')[0]
@@ -149,7 +147,6 @@ class Agent():
                 torch.save(policy_dqn.state_dict(), checkpoint_path)
                 print(f"Model saved at episode {episode}: {checkpoint_path}")
 
-            # 최대 에피소드 체크
             if max_episodes and episode >= max_episodes:
                 print(f"Reached maximum episodes: {max_episodes}")
                 break
@@ -167,13 +164,7 @@ class Agent():
                     action = torch.tensor(action, dtype=torch.int64, device=device)
                 else: # just evaluating state
                     with torch.no_grad():
-                        # 현재 상태(state)를 신경망(policy_dqn)에 입력으로 주어 행동(action)을 선택합니다.
-                        # state는 1차원 텐서(예: tensor([1, 2, 3, ...]))이므로, 
-                        # 배치 차원을 추가하여 2차원 텐서(예: tensor([[1, 2, 3, ...]]))로 만들어줍니다.
-                        # 이는 신경망이 배치 단위로 입력을 받기 때문입니다.
-                        # unsqueeze(dim=0)을 통해 첫 번째 차원에 크기 1의 차원을 추가합니다.
-                        # 출력된 Q값 중 가장 큰 값에 해당하는 행동의 인덱스를 선택합니다.(argmax)
-                        # tensor([1, 2, 3, ...]) -> tensor([[1, 2, 3, ...]])
+
                         action = policy_dqn(state.unsqueeze(dim=0)).squeeze(dim=0).argmax()
 
                 # Processing:
@@ -275,21 +266,9 @@ class Agent():
         with torch.no_grad():
             target_q = rewards + (1-terminations) * self.discount_factor_g * target_dqn(new_states).max(dim=1)[0]
 
-            '''
-                target_dqn(new_states)  ==> tensor([[1,2,3],[4,5,6]])
-                    .max(dim=1)         ==> torch.return_types.max(values=tensor([3,6]), indices=tensor([3, 0, 0, 1]))
-                        [0]             ==> tensor([3,6])
-            '''
-
         # Calcuate Q values from current policy
         current_q = policy_dqn(states).gather(dim=1, index=actions.unsqueeze(dim=1)).squeeze()
-        '''
-            policy_dqn(states)  ==> tensor([[1,2,3],[4,5,6]])
-                actions.unsqueeze(dim=1)
-                .gather(1, actions.unsqueeze(dim=1))  ==>
-                    .squeeze()                    ==>
-        '''
-
+        
         # Compute loss for the whole mini-batch
         loss = self.loss_fn(current_q, target_q)
         
