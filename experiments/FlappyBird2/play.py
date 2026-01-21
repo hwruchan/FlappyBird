@@ -55,7 +55,7 @@ def play(model_number):
             done = terminated or truncated
             total_reward += reward
             
-            # 실제 게임 스코어 업데이트 (info에서 score 가져오기)
+            # 실제 게임 스코어 업데이트
             score = info.get('score', 0)
         
         print(f"Game Over!")

@@ -128,7 +128,6 @@ class Agent():
 
 
         for episode in itertools.count():
-            # 학습 상태 출력
             if is_training and episode % 10000 == 0:
                 print(f"Episode {episode}")
                 print(f"Epsilon: {epsilon:.4f}")
@@ -137,15 +136,13 @@ class Agent():
                     print(f"Max Reward: {max(rewards_per_episode[-10000:]):.2f}")            
                 print("-" * 30)
 
-            # 1000 에피소드마다 또는 마지막 에피소드에서 모델 저장
             if is_training and episode > 0 and (episode % 100000 == 0 or (max_episodes and episode == max_episodes)):
-                model_number = (episode + 99999) // 100000  # 마지막 에피소드를 위해 수정
+                model_number = (episode + 99999) // 100000 
                 base_name = self.hyperparameter_set.split('1')[0]
                 checkpoint_path = os.path.join(RUNS_DIR, f'{base_name}{model_number}.pt')
                 torch.save(policy_dqn.state_dict(), checkpoint_path)
                 print(f"Model saved at episode {episode}: {checkpoint_path}")
 
-            # 최대 에피소드 체크
             if max_episodes and episode >= max_episodes:
                 print(f"Reached maximum episodes: {max_episodes}")
                 break
@@ -163,13 +160,7 @@ class Agent():
                     action = torch.tensor(action, dtype=torch.int64, device=device)
                 else: # just evaluating state
                     with torch.no_grad():
-                        # 현재 상태(state)를 신경망(policy_dqn)에 입력으로 주어 행동(action)을 선택합니다.
-                        # state는 1차원 텐서(예: tensor([1, 2, 3, ...]))이므로, 
-                        # 배치 차원을 추가하여 2차원 텐서(예: tensor([[1, 2, 3, ...]]))로 만들어줍니다.
-                        # 이는 신경망이 배치 단위로 입력을 받기 때문입니다.
-                        # unsqueeze(dim=0)을 통해 첫 번째 차원에 크기 1의 차원을 추가합니다.
-                        # 출력된 Q값 중 가장 큰 값에 해당하는 행동의 인덱스를 선택합니다.(argmax)
-                        # tensor([1, 2, 3, ...]) -> tensor([[1, 2, 3, ...]])
+
                         action = policy_dqn(state.unsqueeze(dim=0)).squeeze(dim=0).argmax()
 
                 # Processing:
