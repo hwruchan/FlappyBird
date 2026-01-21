@@ -226,11 +226,11 @@ python agent.py flappybird1
 
 ## 향후 개선 방향
 
-- [ ] Python 버전 최적화
-- [ ] Custom Environment 심화 이해
-- [ ] Mean 값 추적 기능 강화
-- [ ] Grid Search를 통한 하이퍼파라미터 최적화
-- [ ] Dueling DQN, Prioritized Experience Replay 적용
+-  Python 버전 최적화
+-  Custom Environment 심화 이해
+-  Mean 값 추적 기능 강화
+-  Grid Search를 통한 하이퍼파라미터 최적화
+-  Dueling DQN, Prioritized Experience Replay 적용
 
 ---
 
